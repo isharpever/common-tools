@@ -21,8 +21,8 @@ public class DataSourceAspect implements MethodInterceptor {
                 DataSource data = m.getAnnotation(DataSource.class);
                 HandleDataSource.putDataSource(data.value());
             }else {
-                // 没有注解的默认 都走master
-                HandleDataSource.putDataSource(DbTypeConstant.MASTER);
+                // 没有注解的默认 都走默认数据源
+                HandleDataSource.putDataSource(DbTypeEn.DEFAULT.getMean());
             }
             logger.debug(m.toString() + " execute with datasource is " + HandleDataSource.getDataSource());
             return invocation.proceed();
