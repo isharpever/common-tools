@@ -33,5 +33,6 @@ public class ChooseDataSource extends AbstractRoutingDataSource {
             this.targetDataSources.put(DbTypeEn.DEFAULT.getMean(), dataSource);
             this.setDefaultTargetDataSource(dataSource);
         }
+        super.afterPropertiesSet();
     }
 }
