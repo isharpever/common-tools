@@ -64,12 +64,19 @@ public class InvokeMonitorFilter implements Filter {
             LOGGER.warn("--- 计算dubbo返回结果大小失败", e);
         }
 
+        // 慢接口标识(>=50ms)
+        String slow = "false";
+        if (cost >= 50) {
+            slow = "true";
+        }
+
         MonitorPoint point = MonitorPoint
                 .monitorKey("isharpever.dubbo.monitor")
                 .addTag("app", this.getAppCode(invoker))
                 .addTag("ip", ip)
                 .addTag("interface", interfaceName)
                 .addTag("method", methodName)
+                .addTag("slow", slow)
                 .addField("cost", cost)
                 .addField("rlen", rsltLen).build();
         monitor.writePoint(point);

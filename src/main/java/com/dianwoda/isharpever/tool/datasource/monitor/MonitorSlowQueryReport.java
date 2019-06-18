@@ -75,6 +75,10 @@ public class MonitorSlowQueryReport extends SlowQueryReport {
         if (systemCodeProperty != null) {
             this.setAppCode(systemCodeProperty.getValue());
         }
+        InterceptorProperty appCodeProperty = properties.get("appCode");
+        if (appCodeProperty != null) {
+            this.setAppCode(appCodeProperty.getValue());
+        }
         InterceptorProperty nameProperty = properties.get("name");
         if (nameProperty != null) {
             this.setName(nameProperty.getValue());

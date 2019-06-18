@@ -4,6 +4,7 @@ import com.dianwoba.monitor.client.MonitorFactory;
 import com.dianwoba.monitor.client.MonitorPoint;
 import com.dianwoba.monitor.client.MonitorUtil;
 import com.dianwoda.isharpever.tool.mdc.LogUniqueKeyUtil;
+import com.dianwoda.isharpever.tool.utils.AppNameUtil;
 import com.dianwoda.isharpever.tool.utils.NetUtil;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -210,6 +211,7 @@ public abstract class ExecutorServiceUtil {
 
                 MonitorPoint point = MonitorPoint
                         .monitorKey("isharpever.threadpool")
+                        .addTag("app", AppNameUtil.getAppName())
                         .addTag("ip", NetUtil.getLocalHostAddress())
                         .addTag("name", this.threadPoolName)
                         .addField("corePoolSize", corePoolSize)

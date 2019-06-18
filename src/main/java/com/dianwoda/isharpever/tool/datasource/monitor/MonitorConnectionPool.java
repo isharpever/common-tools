@@ -4,6 +4,7 @@ import com.dianwoba.monitor.client.MonitorFactory;
 import com.dianwoba.monitor.client.MonitorPoint;
 import com.dianwoba.monitor.client.MonitorUtil;
 import com.dianwoda.isharpever.tool.executor.ExecutorServiceUtil;
+import com.dianwoda.isharpever.tool.utils.AppNameUtil;
 import com.dianwoda.isharpever.tool.utils.NetUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -100,6 +101,7 @@ public class MonitorConnectionPool extends ConnectionPool {
 
                 MonitorPoint point = MonitorPoint
                         .monitorKey("isharpever.datasource.pool")
+                        .addTag("app", AppNameUtil.getAppName())
                         .addTag("name", this.poolName)
                         .addTag("ip", NetUtil.getLocalHostAddress())
                         .addField("active", this.getAndClearActive())
