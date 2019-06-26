@@ -6,6 +6,7 @@ import com.alibaba.dubbo.rpc.Filter;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
+import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
@@ -35,8 +36,9 @@ public class InvokeLogFilter implements Filter {
             return invoker.invoke(invocation);
         }
 
-        LOGGER.info("side={} {}.{} start 参数={}",
+        LOGGER.info("side={} remote={} {}.{} start 参数={}",
                 this.side(invoker),
+                this.remote(),
                 invoker.getInterface().getName(), invocation.getMethodName(),
                 toJSONString(invocation.getArguments()));
 
@@ -44,8 +46,9 @@ public class InvokeLogFilter implements Filter {
         Result result = invoker.invoke(invocation);
 
         try {
-            LOGGER.info("side={} {}.{} end 参数={} 响应={} 耗时={}",
+            LOGGER.info("side={} remote={} {}.{} end 参数={} 响应={} 耗时={}",
                     this.side(invoker),
+                    this.remote(),
                     invoker.getInterface().getName(), invocation.getMethodName(),
                     toJSONString(invocation.getArguments()),
                     toJSONString(result),
@@ -77,5 +80,9 @@ public class InvokeLogFilter implements Filter {
             LOGGER.warn("--- InvokeLogFilter.side error", e);
         }
         return result;
+    }
+
+    private String remote() {
+        return RpcContext.getContext().getRemoteAddressString();
     }
 }
