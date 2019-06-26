@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.dianwoba.riskcontrol</groupId>
-        <artifactId>parent</artifactId>
+        <groupId>com.isharpever.common</groupId>
+        <artifactId>common-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version> <!-- lookup parent from repository -->
     </parent>
 
@@ -29,14 +29,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.alibaba</groupId>
+            <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -90,6 +84,16 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-jdbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpasyncclient</artifactId>
             <version>4.1.3</version>
@@ -103,7 +107,6 @@
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-client</artifactId>
-            <version>4.0.0-incubating</version>
         </dependency>
     </dependencies>
 

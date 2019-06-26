@@ -1,22 +1,22 @@
 package com.dianwoda.isharpever.tool.dubbo.filter;
 
-import com.alibaba.dubbo.common.Constants;
-import com.alibaba.dubbo.common.extension.Activate;
-import com.alibaba.dubbo.rpc.Filter;
-import com.alibaba.dubbo.rpc.Invocation;
-import com.alibaba.dubbo.rpc.Invoker;
-import com.alibaba.dubbo.rpc.Result;
-import com.alibaba.dubbo.rpc.RpcContext;
-import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import java.util.List;
 import org.apache.commons.lang.StringUtils;
+import org.apache.dubbo.common.constants.CommonConstants;
+import org.apache.dubbo.common.extension.Activate;
+import org.apache.dubbo.rpc.Invocation;
+import org.apache.dubbo.rpc.Invoker;
+import org.apache.dubbo.rpc.ListenableFilter;
+import org.apache.dubbo.rpc.Result;
+import org.apache.dubbo.rpc.RpcContext;
+import org.apache.dubbo.rpc.RpcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Activate(group = {Constants.CONSUMER, Constants.PROVIDER})
-public class InvokeLogFilter implements Filter {
+@Activate(group = {CommonConstants.CONSUMER, CommonConstants.PROVIDER})
+public class InvokeLogFilter extends ListenableFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(InvokeLogFilter.class);
 
     /** 限定日志中输出参数和结果的最大长度 */
@@ -24,10 +24,12 @@ public class InvokeLogFilter implements Filter {
 
     /** 不输出调用日志的服务 */
     public static final List<String> NOT_LOGGED_SERVICE = Lists.newArrayList(
-            "com.alibaba.dubbo.monitor.MonitorService");
+            "com.alibaba.dubbo.monitor.MonitorService", "org.apache.dubbo.monitor.MonitorService");
+
+    private static final String INVOKELOG_FILTER_START_TIME = "invokelog_filter_start_time";
 
     public InvokeLogFilter() {
-        LOGGER.info("InvokeLogFilter initilizing...");
+        super.listener = new InvokeLogListener();
     }
 
     @Override
@@ -37,29 +39,16 @@ public class InvokeLogFilter implements Filter {
         }
 
         LOGGER.info("side={} remote={} {}.{} start 参数={}",
-                this.side(invoker),
-                this.remote(),
+                side(invoker),
+                remote(),
                 invoker.getInterface().getName(), invocation.getMethodName(),
                 toJSONString(invocation.getArguments()));
 
-        long start = System.currentTimeMillis();
-        Result result = invoker.invoke(invocation);
-
-        try {
-            LOGGER.info("side={} remote={} {}.{} end 参数={} 响应={} 耗时={}",
-                    this.side(invoker),
-                    this.remote(),
-                    invoker.getInterface().getName(), invocation.getMethodName(),
-                    toJSONString(invocation.getArguments()),
-                    toJSONString(result),
-                    System.currentTimeMillis() - start);
-        } catch (Throwable e) {
-            LOGGER.warn("InvokeLogFilter error. side={}", this.side(invoker), e);
-        }
-        return result;
+        invocation.setAttachment(INVOKELOG_FILTER_START_TIME, String.valueOf(System.currentTimeMillis()));
+        return invoker.invoke(invocation);
     }
 
-    private String toJSONString(Object obj) {
+    private static String toJSONString(Object obj) {
         String result = "unknown";
         try {
             result = JSON.toJSONString(obj);
@@ -72,17 +61,42 @@ public class InvokeLogFilter implements Filter {
         return result;
     }
 
-    private String side(Invoker<?> invoker) {
+    private static String side(Invoker<?> invoker) {
         String result = "unknown";
         try {
-            result = invoker.getUrl().getParameter(Constants.SIDE_KEY);
+            result = invoker.getUrl().getParameter(CommonConstants.SIDE_KEY);
         } catch (Exception e) {
             LOGGER.warn("--- InvokeLogFilter.side error", e);
         }
         return result;
     }
 
-    private String remote() {
+    private static String remote() {
         return RpcContext.getContext().getRemoteAddressString();
+    }
+
+    static class InvokeLogListener implements Listener {
+        @Override
+        public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
+            String elapsed = "unknown";
+            try {
+                String startAttach = invocation.getAttachment(INVOKELOG_FILTER_START_TIME);
+                elapsed = String.valueOf(System.currentTimeMillis() - Long.valueOf(startAttach));
+            } catch (NumberFormatException e) {
+            }
+
+            LOGGER.info("side={} remote={} {}.{} end 参数={} 响应={} 耗时={}",
+                    InvokeLogFilter.side(invoker),
+                    InvokeLogFilter.remote(),
+                    invoker.getInterface().getName(), invocation.getMethodName(),
+                    InvokeLogFilter.toJSONString(invocation.getArguments()),
+                    InvokeLogFilter.toJSONString(appResponse),
+                    elapsed);
+        }
+
+        @Override
+        public void onError(Throwable t, Invoker<?> invoker, Invocation invocation) {
+
+        }
     }
 }
