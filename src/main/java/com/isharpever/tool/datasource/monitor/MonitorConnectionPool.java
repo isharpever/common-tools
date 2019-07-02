@@ -21,11 +21,11 @@ public class MonitorConnectionPool extends ConnectionPool {
 
     private static final MonitorUtil monitor = MonitorFactory.connect();
     private static final ScheduledExecutorService executorService = ExecutorServiceUtil
-            .buildScheduledThreadPool(2, "ConnectionPoolStat-");
+            .buildScheduledThreadPool(1, "ConnectionPoolStat-");
     private static final ConcurrentHashMap<String, PoolStat> POOL_STAT_REGISTRY = new ConcurrentHashMap<>(2);
 
     /*
-     * 把记录输出到监控日志,并清零,每秒执行一次
+     * 把各连接池状态输出到监控日志,并清零,每秒执行一次
      */
     static {
         executorService.scheduleAtFixedRate(() -> {
@@ -33,8 +33,13 @@ public class MonitorConnectionPool extends ConnectionPool {
                 if (poolStat == null) {
                     return;
                 }
-                // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录连接池的活跃和空闲数
+                // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录连接池的状态值
                 poolStat.updateNow();
+
+                // 从上次获取并记录后没有发生变化的话,没必要输出监控日志
+                if (!poolStat.isChanged()) {
+                    return;
+                }
 
                 MonitorPoint point = MonitorPoint
                         .monitorKey("isharpever.datasource.pool")
@@ -77,7 +82,7 @@ public class MonitorConnectionPool extends ConnectionPool {
     }
 
     /**
-     * 获取连接池的活跃和空闲数,如果比当前值更大则更新当前值<br>
+     * 获取连接池的状态值,如果比当前值更大则更新当前值<br>
      * 执行的时机为:(a)从连接池获取连接时 (b)向连接池返还连接时 (c)释放连接时
      */
     private void recordPoolStat() {
@@ -97,8 +102,15 @@ public class MonitorConnectionPool extends ConnectionPool {
     private static class PoolStat {
         private MonitorConnectionPool connectionPool;
         private String poolName;
+        /** 活跃连接数 */
         private AtomicInteger active;
+        /** 空闲连接数 */
         private AtomicInteger idle;
+
+        /** 前一次收集的值:活跃连接数 */
+        private int previousActive;
+        /** 前一次收集的值:空闲连接数 */
+        private int previousIdle;
 
         private PoolStat(String poolName, MonitorConnectionPool connectionPool) {
             this.connectionPool = connectionPool;
@@ -107,6 +119,10 @@ public class MonitorConnectionPool extends ConnectionPool {
             this.idle = new AtomicInteger(0);
         }
 
+        /**
+         * 只在值变大的时候更新,因此收集当前值后需要清零(getAndClearXxx),否则值只会变大不会变小<br>
+         * 没有采取"凡是在值发生变化时都更新"这样策略的原因是:值的收集不是实时的,希望收集的值能体现一段时间的高峰
+         */
         private void updateNow() {
             updActiveIfLarger(connectionPool.getActive());
             updIdleIfLarger(connectionPool.getIdle());
@@ -137,11 +153,20 @@ public class MonitorConnectionPool extends ConnectionPool {
         }
 
         private int getAndClearActive() {
-            return this.active.getAndSet(0);
+            return previousActive = this.active.getAndSet(0);
         }
 
         private int getAndClearIdle() {
-            return this.idle.getAndSet(0);
+            return previousIdle = this.idle.getAndSet(0);
+        }
+
+        /**
+         * 具有实时监控意义的指标是否发生了变化
+         * @return
+         */
+        private boolean isChanged() {
+            return this.active.get() != previousActive
+                    || this.idle.get() != previousIdle;
         }
     }
 }
