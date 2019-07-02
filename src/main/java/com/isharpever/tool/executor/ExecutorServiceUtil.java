@@ -374,35 +374,35 @@ public abstract class ExecutorServiceUtil {
         }
 
         public int getCorePoolSize() {
-            return corePoolSize.get();
+            return corePoolSize.getAndSet(0);
         }
 
         public int getMaximumPoolSize() {
-            return maximumPoolSize.get();
+            return maximumPoolSize.getAndSet(0);
         }
 
         public int getPoolSize() {
-            return poolSize.get();
+            return poolSize.getAndSet(0);
         }
 
         public int getLargestPoolSize() {
-            return largestPoolSize.get();
+            return largestPoolSize.getAndSet(0);
         }
 
         public int getActiveCount() {
-            return activeCount.get();
+            return activeCount.getAndSet(0);
         }
 
         public long getCompletedTaskCount() {
-            return completedTaskCount.get();
+            return completedTaskCount.getAndSet(0);
         }
 
         public long getTaskCount() {
-            return taskCount.get();
+            return taskCount.getAndSet(0);
         }
 
         public int getQueueSize() {
-            return queueSize.get();
+            return queueSize.getAndSet(0);
         }
     }
 }
