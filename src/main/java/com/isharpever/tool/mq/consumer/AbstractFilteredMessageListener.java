@@ -41,9 +41,7 @@ public abstract class AbstractFilteredMessageListener implements MessageListener
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         }
 
-        if (StringUtils.isBlank(MDC.get(LogUniqueKeyUtil.LOG_KEY))) {
-            MDC.put(LogUniqueKeyUtil.LOG_KEY, LogUniqueKeyUtil.generateKey());
-        }
+        LogUniqueKeyUtil.generateKeyToLogIfAbsent();
 
         MessageExt msg = msgs.get(0);
         String body = new String(msg.getBody());

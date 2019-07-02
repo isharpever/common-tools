@@ -11,12 +11,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
@@ -24,10 +26,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 public abstract class ExecutorServiceUtil {
 
@@ -35,18 +35,25 @@ public abstract class ExecutorServiceUtil {
 
     private static final MonitorUtil monitor = MonitorFactory.connect();
 
-    public static ExecutorService buildExecutorService(int maximumPoolSize, String namePrefix) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
-                new DefaultNamedThreadFactory(namePrefix));
-        return getProxy(executor, namePrefix);
+    public static ExecutorService buildExecutorService(int maximumPoolSize, String poolName) {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize, 0L,
+                TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
+                new DefaultNamedThreadFactory(poolName));
+        return getProxy(executor, poolName);
     }
 
-    public static ScheduledExecutorService buildScheduledThreadPool(int maximumPoolSize, String namePrefix) {
+    public static ExecutorService buildExecutorService(int maximumPoolSize, String poolName,
+            BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory,
+            RejectedExecutionHandler rejectedPolicy) {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize, 0L,
+                TimeUnit.MILLISECONDS, workQueue, threadFactory, rejectedPolicy);
+        return getProxy(executor, poolName);
+    }
+
+    public static ScheduledExecutorService buildScheduledThreadPool(int maximumPoolSize, String poolName) {
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(maximumPoolSize,
-                new DefaultNamedThreadFactory(namePrefix));
-        return getProxy(executor, namePrefix);
+                new DefaultNamedThreadFactory(poolName));
+        return getProxy(executor, poolName);
     }
 
     private static class DefaultNamedThreadFactory implements ThreadFactory {
@@ -63,9 +70,7 @@ public abstract class ExecutorServiceUtil {
 
         @Override
         public Thread newThread(Runnable r) {
-            Thread t = new Thread(group, r,
-                    namePrefix + threadNumber.getAndIncrement(),
-                    0);
+            Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
             if (t.isDaemon()) {
                 t.setDaemon(false);
             }
@@ -90,7 +95,8 @@ public abstract class ExecutorServiceUtil {
         interfaceList.toArray(interfaces);
 
         return (T) Proxy.newProxyInstance(
-                Thread.currentThread().getContextClassLoader(), interfaces, customeInvocationHandler);
+                Thread.currentThread().getContextClassLoader(), interfaces,
+                customeInvocationHandler);
     }
 
     /**
@@ -125,16 +131,13 @@ public abstract class ExecutorServiceUtil {
             this.monitorThreadPoolExecutor();
 
             if (METHOD_NAME_SUBMIT.contains(method.getName())) {
-                String logKey = MDC.get(LogUniqueKeyUtil.LOG_KEY);
-                if (StringUtils.isBlank(logKey)) {
-                    logKey = LogUniqueKeyUtil.generateKey();
-                }
-                final String flogKey = logKey;
+                LogUniqueKeyUtil.generateKeyToLogIfAbsent();
+                final String logKey = LogUniqueKeyUtil.getKeyFromLog();
 
                 final Object arg0 = args[0];
                 if (arg0 instanceof Runnable) {
                     args[0] = (Runnable) () -> {
-                        MDC.put(LogUniqueKeyUtil.LOG_KEY, flogKey);
+                        LogUniqueKeyUtil.generateKeyToLog(logKey);
                         final Runnable task = (Runnable) arg0;
                         try {
                             task.run();
@@ -166,7 +169,7 @@ public abstract class ExecutorServiceUtil {
                     };
                 } else if (arg0 instanceof Callable<?>) {
                     args[0] = (Callable<Object>) () -> {
-                        MDC.put(LogUniqueKeyUtil.LOG_KEY, flogKey);
+                        LogUniqueKeyUtil.generateKeyToLog(logKey);
                         final Callable<?> task = (Callable<?>) arg0;
                         try {
                             return task.call();

@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 
 public class LogUniqueKeyUtil {
-    public static String LOG_KEY = "unique";
+    private static final String LOG_KEY = "unique";
 
     public LogUniqueKeyUtil() {
     }
@@ -14,7 +14,17 @@ public class LogUniqueKeyUtil {
     }
 
     public static void generateKeyToLog() {
-        MDC.put(LOG_KEY, generateKey());
+        generateKeyToLog(generateKey());
+    }
+
+    public static void generateKeyToLogIfAbsent() {
+        if (StringUtils.isBlank(getKeyFromLog())) {
+            generateKeyToLog(generateKey());
+        }
+    }
+
+    public static void generateKeyToLog(String logKey) {
+        MDC.put(LOG_KEY, logKey);
     }
 
     public static void removeKeyFromLog() {
@@ -25,12 +35,4 @@ public class LogUniqueKeyUtil {
         return MDC.get(LOG_KEY);
     }
 
-    public static void setLogKeyIfNullAdd(String key) {
-        String tmp = key;
-        if (StringUtils.isEmpty(key)) {
-            tmp = generateKey();
-        }
-
-        MDC.put(LOG_KEY, tmp);
-    }
 }
