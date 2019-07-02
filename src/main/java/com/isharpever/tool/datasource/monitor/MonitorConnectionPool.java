@@ -16,12 +16,37 @@ import org.apache.tomcat.jdbc.pool.ConnectionPool;
 import org.apache.tomcat.jdbc.pool.PoolConfiguration;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MonitorConnectionPool extends ConnectionPool {
 
-    public static final ConcurrentHashMap<String, PoolStat> poolStats = new ConcurrentHashMap<>(2);
+    private static final MonitorUtil monitor = MonitorFactory.connect();
+    private static final ScheduledExecutorService executorService = ExecutorServiceUtil
+            .buildScheduledThreadPool(2, "ConnectionPoolStat-");
+    private static final ConcurrentHashMap<String, PoolStat> POOL_STAT_REGISTRY = new ConcurrentHashMap<>(2);
+
+    /*
+     * 把记录输出到监控日志,并清零,每秒执行一次
+     */
+    static {
+        executorService.scheduleAtFixedRate(() -> {
+            POOL_STAT_REGISTRY.values().forEach(poolStat -> {
+                if (poolStat == null) {
+                    return;
+                }
+                // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录连接池的活跃和空闲数
+                poolStat.updateNow();
+
+                MonitorPoint point = MonitorPoint
+                        .monitorKey("isharpever.datasource.pool")
+                        .addTag("app", AppNameUtil.getAppName())
+                        .addTag("name", poolStat.getPoolName())
+                        .addTag("ip", NetUtil.getLocalHostAddress())
+                        .addField("active", poolStat.getAndClearActive())
+                        .addField("idle", poolStat.getAndClearIdle()).build();
+                monitor.writePoint(point);
+            });
+        }, 1, 1, TimeUnit.SECONDS);
+    }
 
     /**
      * Instantiate a connection pool. This will create connections if initialSize is larger than 0.
@@ -53,61 +78,38 @@ public class MonitorConnectionPool extends ConnectionPool {
 
     /**
      * 获取连接池的活跃和空闲数,如果比当前值更大则更新当前值<br>
-     * 执行的时机为:(a)从连接池获取连接时 (b)向连接池返还连接时 (c)释放连接时 (d)把记录输出到监控日志之前
+     * 执行的时机为:(a)从连接池获取连接时 (b)向连接池返还连接时 (c)释放连接时
      */
     private void recordPoolStat() {
-        PoolStat poolStat = this.getPoolStat(this.getName());
-        poolStat.updActiveIfLarger(this.getActive());
-        poolStat.updIdleIfLarger(this.getIdle());
+        PoolStat poolStat = this.getPoolStat(this.getName(), this);
+        poolStat.updateNow();
     }
 
-    private PoolStat getPoolStat(String name) {
-        PoolStat poolStat = poolStats.get(name);
+    private PoolStat getPoolStat(String poolName, MonitorConnectionPool connectionPool) {
+        PoolStat poolStat = POOL_STAT_REGISTRY.get(poolName);
         if (poolStat == null) {
-            synchronized (this) {
-                poolStat = poolStats.get(name);
-                if (poolStat == null) {
-                    poolStats.putIfAbsent(name, new PoolStat(name, this));
-                    poolStat = poolStats.get(name);
-                }
-            }
+            POOL_STAT_REGISTRY.putIfAbsent(poolName, new PoolStat(poolName, connectionPool));
+            poolStat = POOL_STAT_REGISTRY.get(poolName);
         }
         return poolStat;
     }
 
     private static class PoolStat {
-        private static final Logger logger = LoggerFactory.getLogger(PoolStat.class);
-        private static final MonitorUtil monitor = MonitorFactory.connect();
-        private static final ScheduledExecutorService executorService = ExecutorServiceUtil
-                .buildScheduledThreadPool(2, "PoolStat-");
-
-        private MonitorConnectionPool monitorConnectionPool;
+        private MonitorConnectionPool connectionPool;
         private String poolName;
         private AtomicInteger active;
         private AtomicInteger idle;
 
-        private PoolStat(String poolName, MonitorConnectionPool monitorConnectionPool) {
-            this.monitorConnectionPool = monitorConnectionPool;
+        private PoolStat(String poolName, MonitorConnectionPool connectionPool) {
+            this.connectionPool = connectionPool;
             this.poolName = poolName;
             this.active = new AtomicInteger(0);
             this.idle = new AtomicInteger(0);
+        }
 
-            /*
-             * 把记录输出到监控日志,并清零,每秒执行一次
-             */
-            executorService.scheduleAtFixedRate(() -> {
-                // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录连接池的活跃和空闲数
-                monitorConnectionPool.recordPoolStat();
-
-                MonitorPoint point = MonitorPoint
-                        .monitorKey("isharpever.datasource.pool")
-                        .addTag("app", AppNameUtil.getAppName())
-                        .addTag("name", this.poolName)
-                        .addTag("ip", NetUtil.getLocalHostAddress())
-                        .addField("active", this.getAndClearActive())
-                        .addField("idle", this.getAndClearIdle()).build();
-                monitor.writePoint(point);
-            }, 1, 1, TimeUnit.SECONDS);
+        private void updateNow() {
+            updActiveIfLarger(connectionPool.getActive());
+            updIdleIfLarger(connectionPool.getIdle());
         }
 
         private void updActiveIfLarger(int active) {
@@ -128,6 +130,10 @@ public class MonitorConnectionPool extends ConnectionPool {
                 }
                 currentActive = this.idle.get();
             }
+        }
+
+        private String getPoolName() {
+            return poolName;
         }
 
         private int getAndClearActive() {
