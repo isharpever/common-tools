@@ -394,35 +394,35 @@ public abstract class ExecutorServiceUtil {
         }
 
         public int getAndClearCorePoolSize() {
-            return previousCorePoolSize = corePoolSize.getAndSet(0);
+            return corePoolSize.getAndSet(0);
         }
 
         public int getAndClearMaximumPoolSize() {
-            return previousMaximumPoolSize = maximumPoolSize.getAndSet(0);
+            return maximumPoolSize.getAndSet(0);
         }
 
         public int getAndClearPoolSize() {
-            return previousPoolSize = poolSize.getAndSet(0);
+            return poolSize.getAndSet(0);
         }
 
         public int getAndClearLargestPoolSize() {
-            return previousLargestPoolSize = largestPoolSize.getAndSet(0);
+            return largestPoolSize.getAndSet(0);
         }
 
         public int getAndClearActiveCount() {
-            return previousActiveCount = activeCount.getAndSet(0);
+            return activeCount.getAndSet(0);
         }
 
         public long getAndClearCompletedTaskCount() {
-            return previousCompletedTaskCount = completedTaskCount.getAndSet(0);
+            return completedTaskCount.getAndSet(0);
         }
 
         public long getAndClearTaskCount() {
-            return previousTaskCount = taskCount.getAndSet(0);
+            return taskCount.getAndSet(0);
         }
 
         public int getAndClearQueueSize() {
-            return previousQueueSize = queueSize.getAndSet(0);
+            return queueSize.getAndSet(0);
         }
 
         /**
