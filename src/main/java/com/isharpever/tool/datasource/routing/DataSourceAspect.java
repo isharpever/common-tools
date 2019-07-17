@@ -1,34 +1,51 @@
 package com.isharpever.tool.datasource.routing;
 
+import com.isharpever.tool.datasource.routing.DataSource.Propagation;
 import java.lang.reflect.Method;
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.stereotype.Component;
 
 /**
  * 切换数据源切面
  */
-public class DataSourceAspect implements MethodInterceptor {
-    private static final Logger logger = LoggerFactory.getLogger(DataSourceAspect.class);
+@Component
+@Aspect
+@Slf4j
+public class DataSourceAspect {
 
-    @Override
-    public Object invoke(MethodInvocation invocation) throws Throwable {
+    @Pointcut("@annotation(DataSource)")
+    public void pointcut() {}
+
+    @Around("pointcut()")
+    public Object arround(ProceedingJoinPoint joinPoint) throws Throwable {
+        Object lookupKey = retrieveLookupKey(joinPoint);
+        DataSourceLookupKeyHolder.put(lookupKey);
         try {
-            Method m = invocation.getMethod();
+            return joinPoint.proceed();
+        }finally {
+            DataSourceLookupKeyHolder.pop();
+        }
+    }
+
+    private Object retrieveLookupKey(ProceedingJoinPoint joinPoint) {
+        try {
+            Method m = ((MethodSignature)joinPoint.getSignature()).getMethod();
             if (m != null && m.isAnnotationPresent(DataSource.class)) {
                 DataSource data = m.getAnnotation(DataSource.class);
-                HandleDataSource.putDataSource(data.value());
-            }else {
-                // 没有注解的默认 都走默认数据源
-                HandleDataSource.putDataSource(DbTypeEn.DEFAULT.getMean());
+                if (data.propagation() == Propagation.INHERIT
+                        && DataSourceLookupKeyHolder.get() != null) {
+                    return DataSourceLookupKeyHolder.get();
+                }
+                return data.value();
             }
-            logger.debug(m.toString() + " execute with datasource is " + HandleDataSource.getDataSource());
-            return invocation.proceed();
-        }finally {
-            HandleDataSource.clear();
-            logger.info("restore database connection");
+        } catch (Exception e) {
+            log.warn("--- 选择数据源发生异常", e);
         }
+        return null;
     }
 }

@@ -11,7 +11,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +18,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
@@ -32,28 +30,46 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class ExecutorServiceUtil {
-
     private static final Logger logger = LoggerFactory.getLogger(ExecutorServiceUtil.class);
 
+    /** 线程池监控数据默认的measurement */
+    private static final String DEFAULT_MEASUREMENT = "isharpever.threadpool";
+
     public static ExecutorService buildExecutorService(int maximumPoolSize, String poolName) {
+        return buildExecutorService(maximumPoolSize, poolName, DEFAULT_MEASUREMENT);
+    }
+
+    public static ExecutorService buildExecutorService(int maximumPoolSize, String poolName, String measurement) {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize, 0L,
                 TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
                 new DefaultNamedThreadFactory(poolName));
-        return getProxy(executor, poolName);
+        return buildExecutorService(executor, poolName, measurement);
     }
 
-    public static ExecutorService buildExecutorService(int maximumPoolSize, String poolName,
-            BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory,
-            RejectedExecutionHandler rejectedPolicy) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize, 0L,
-                TimeUnit.MILLISECONDS, workQueue, threadFactory, rejectedPolicy);
-        return getProxy(executor, poolName);
+    public static ExecutorService buildExecutorService(ThreadPoolExecutor executor, String poolName) {
+        return buildExecutorService(executor, poolName, DEFAULT_MEASUREMENT);
+    }
+
+    public static ExecutorService buildExecutorService(ThreadPoolExecutor executor, String poolName, String measurement) {
+        return getProxy(executor, poolName, measurement);
     }
 
     public static ScheduledExecutorService buildScheduledThreadPool(int maximumPoolSize, String poolName) {
+        return buildScheduledThreadPool(maximumPoolSize, poolName, DEFAULT_MEASUREMENT);
+    }
+
+    public static ScheduledExecutorService buildScheduledThreadPool(int maximumPoolSize, String poolName, String measurement) {
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(maximumPoolSize,
                 new DefaultNamedThreadFactory(poolName));
-        return getProxy(executor, poolName);
+        return buildScheduledThreadPool(executor, poolName, measurement);
+    }
+
+    public static ScheduledExecutorService buildScheduledThreadPool(ScheduledThreadPoolExecutor executor, String poolName) {
+        return buildScheduledThreadPool(executor, poolName, DEFAULT_MEASUREMENT);
+    }
+
+    public static ScheduledExecutorService buildScheduledThreadPool(ScheduledThreadPoolExecutor executor, String poolName, String measurement) {
+        return getProxy(executor, poolName, measurement);
     }
 
     private static class DefaultNamedThreadFactory implements ThreadFactory {
@@ -85,10 +101,11 @@ public abstract class ExecutorServiceUtil {
      * 返回代理线程池对象
      * @param executor
      * @param name
+     * @param measurement
      * @return
      */
-    private static <T> T getProxy(final ThreadPoolExecutor executor, String name) {
-        CustomeInvocationHandler customeInvocationHandler = new CustomeInvocationHandler(executor, name);
+    private static <T> T getProxy(final ThreadPoolExecutor executor, String name, String measurement) {
+        CustomeInvocationHandler customeInvocationHandler = new CustomeInvocationHandler(executor, name, measurement);
 
         List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(executor.getClass());
         Class[] interfaces = new Class[interfaceList.size()];
@@ -103,7 +120,6 @@ public abstract class ExecutorServiceUtil {
      * 代理处理: <li>1.异常日志 <li>2.监控
      */
     private static class CustomeInvocationHandler implements InvocationHandler {
-        private static final MonitorUtil monitor = MonitorFactory.connect();
         private static final ScheduledExecutorService executorService = ExecutorServiceUtil
                 .buildScheduledThreadPool(1, "ThreadPoolStat-");
         private static final ConcurrentHashMap<String, PoolStat> POOL_STAT_REGISTRY = new ConcurrentHashMap<>(8);
@@ -128,40 +144,20 @@ public abstract class ExecutorServiceUtil {
                     if (poolStat == null) {
                         return;
                     }
-                    // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录线程池的状态值
-                    poolStat.updateNow();
-
-                    // 从上次获取并记录后没有发生变化的话,没必要输出监控日志
-                    if (!poolStat.isChanged()) {
-                        return;
-                    }
-
-                    MonitorPoint point = MonitorPoint
-                            .monitorKey("isharpever.threadpool")
-                            .addTag("app", AppNameUtil.getAppName())
-                            .addTag("ip", NetUtil.getLocalHostAddress())
-                            .addTag("name", poolStat.getPoolName())
-                            .addField("corePoolSize", poolStat.getAndClearCorePoolSize())
-                            .addField("maximumPoolSize", poolStat.getAndClearMaximumPoolSize())
-                            .addField("poolSize", poolStat.getAndClearPoolSize())
-                            .addField("largestPoolSize", poolStat.getAndClearLargestPoolSize())
-                            .addField("activeCount", poolStat.getAndClearActiveCount())
-                            .addField("completedTaskCount", poolStat.getAndClearCompletedTaskCount())
-                            .addField("taskCount", poolStat.getAndClearTaskCount())
-                            .addField("queueSize", poolStat.getAndClearQueueSize())
-                            .build();
-                    monitor.writePoint(point);
+                    poolStat.writePoint();
                 });
             }, 1, 1, TimeUnit.SECONDS);
         }
 
         private ThreadPoolExecutor threadPoolExecutor;
         private String threadPoolName;
+        private String measurement;
 
         private CustomeInvocationHandler(ThreadPoolExecutor threadPoolExecutor,
-                String threadPoolName) {
+                String threadPoolName, String measurement) {
             this.threadPoolExecutor = threadPoolExecutor;
             this.threadPoolName = threadPoolName;
+            this.measurement = measurement;
         }
 
         @Override
@@ -170,7 +166,6 @@ public abstract class ExecutorServiceUtil {
             this.recordPoolStat();
 
             if (METHOD_NAME_SUBMIT.contains(method.getName())) {
-                LogUniqueKeyUtil.generateKeyToLogIfAbsent();
                 final String logKey = LogUniqueKeyUtil.getKeyFromLog();
 
                 final Object arg0 = args[0];
@@ -235,14 +230,14 @@ public abstract class ExecutorServiceUtil {
          * 执行的时机为:(a)向线程池提交任务时 (b)任务执行结束时
          */
         private void recordPoolStat() {
-            PoolStat poolStat = this.getPoolStat(this.threadPoolName, this.threadPoolExecutor);
+            PoolStat poolStat = this.getPoolStat(this.threadPoolName, this.threadPoolExecutor, this.measurement);
             poolStat.updateNow();
         }
 
-        private PoolStat getPoolStat(String poolName, ThreadPoolExecutor executor) {
+        private PoolStat getPoolStat(String poolName, ThreadPoolExecutor executor, String measurement) {
             PoolStat poolStat = POOL_STAT_REGISTRY.get(poolName);
             if (poolStat == null) {
-                POOL_STAT_REGISTRY.putIfAbsent(poolName, new PoolStat(poolName, executor));
+                POOL_STAT_REGISTRY.putIfAbsent(poolName, new PoolStat(poolName, executor, measurement));
                 poolStat = POOL_STAT_REGISTRY.get(poolName);
             }
             return poolStat;
@@ -250,8 +245,11 @@ public abstract class ExecutorServiceUtil {
     }
 
     private static class PoolStat {
+        private static final MonitorUtil monitor = MonitorFactory.connect();
+
         private ThreadPoolExecutor executor;
         private String poolName;
+        private String measurement;
         /** 核心线程数 */
         private AtomicInteger corePoolSize;
         /** 最大线程数 */
@@ -286,9 +284,10 @@ public abstract class ExecutorServiceUtil {
         /** 前一次收集的值:等待执行的任务数 */
         private int previousQueueSize;
 
-        private PoolStat(String poolName, ThreadPoolExecutor executor) {
+        private PoolStat(String poolName, ThreadPoolExecutor executor, String measurement) {
             this.executor = executor;
             this.poolName = poolName;
+            this.measurement = measurement;
             this.corePoolSize = new AtomicInteger(0);
             this.maximumPoolSize = new AtomicInteger(0);
             this.poolSize = new AtomicInteger(0);
@@ -301,7 +300,7 @@ public abstract class ExecutorServiceUtil {
 
         /**
          * 只在值变大的时候更新,因此收集当前值后需要清零(getAndClearXxx),否则值只会变大不会变小<br>
-         * 没有采取"凡是在值发生变化时都更新"这样策略的原因是:值的收集不是实时的,希望收集的值能体现一段时间的高峰
+         * 没有采取"凡是在值发生变化时都更新"这样策略的原因是:值是每隔一段时间收集一次的,希望收集的值能体现出这段时间内的高峰
          */
         private void updateNow() {
             updCorePoolSizeIfLarger(executor.getCorePoolSize());
@@ -394,10 +393,6 @@ public abstract class ExecutorServiceUtil {
             }
         }
 
-        private String getPoolName() {
-            return poolName;
-        }
-
         public int getAndClearCorePoolSize() {
             return previousCorePoolSize = corePoolSize.getAndSet(0);
         }
@@ -431,19 +426,59 @@ public abstract class ExecutorServiceUtil {
         }
 
         /**
-         * 具有实时监控意义的指标是否发生了变化
-         * @return
+         * 输出监控日志
          */
-        private boolean isChanged() {
-            return this.corePoolSize.get() != previousCorePoolSize
-                    || this.maximumPoolSize.get() != previousMaximumPoolSize
-                    || this.poolSize.get() != previousPoolSize
-                    || this.largestPoolSize.get() != previousLargestPoolSize
-                    || this.activeCount.get() != previousActiveCount
-                    // 这两项实时监控的意义不大
-//                    || this.completedTaskCount.get() != previousCompletedTaskCount
-//                    || this.taskCount.get() != previousTaskCount
-                    || this.queueSize.get() != previousQueueSize;
+        private void writePoint() {
+            // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录线程池的状态值
+            updateNow();
+
+            // 获取并清零当前状态值
+            int corePoolSize = getAndClearCorePoolSize();
+            int maximumPoolSize = getAndClearMaximumPoolSize();
+            int poolSize = getAndClearPoolSize();
+            int largestPoolSize = getAndClearLargestPoolSize();
+            int activeCount = getAndClearActiveCount();
+            long completedTaskCount = getAndClearCompletedTaskCount();
+            long taskCount = getAndClearTaskCount();
+            int queueSize = getAndClearQueueSize();
+
+            // 从上次获取并记录后没有发生变化的话,没必要输出监控日志
+            if (corePoolSize == previousCorePoolSize
+                    && maximumPoolSize == previousMaximumPoolSize
+                    && poolSize == previousPoolSize
+                    && largestPoolSize == previousLargestPoolSize
+                    && activeCount == previousActiveCount
+                    // 这两项即使变化,也没啥必要实时输出到监控
+//                    && completedTaskCount == previousCompletedTaskCount
+//                    && taskCount == previousTaskCount
+                    && queueSize == previousQueueSize) {
+                return;
+            }
+
+            MonitorPoint point = MonitorPoint
+                    .monitorKey(this.measurement)
+                    .addTag("app", AppNameUtil.getAppName())
+                    .addTag("ip", NetUtil.getLocalHostAddress())
+                    .addTag("name", this.poolName)
+                    .addField("corePoolSize", corePoolSize)
+                    .addField("maximumPoolSize", maximumPoolSize)
+                    .addField("poolSize", poolSize)
+                    .addField("largestPoolSize", largestPoolSize)
+                    .addField("activeCount", activeCount)
+                    .addField("completedTaskCount", completedTaskCount)
+                    .addField("taskCount", taskCount)
+                    .addField("queueSize", queueSize)
+                    .build();
+            monitor.writePoint(point);
+
+            this.previousCorePoolSize = corePoolSize;
+            this.previousMaximumPoolSize = maximumPoolSize;
+            this.previousPoolSize = poolSize;
+            this.previousLargestPoolSize = largestPoolSize;
+            this.previousActiveCount = activeCount;
+            this.previousCompletedTaskCount = completedTaskCount;
+            this.previousTaskCount = taskCount;
+            this.previousQueueSize = queueSize;
         }
     }
 }

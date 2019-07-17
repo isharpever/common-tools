@@ -22,7 +22,7 @@ public class ProviderTrackingFilter implements Filter {
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         try {
-            LogUniqueKeyUtil.generateKeyToLog();
+            LogUniqueKeyUtil.generateKeyToLogIfAbsent();
         } catch (Throwable var4) {
             logger.warn("ProviderTrackingFilter error", var4);
         }

@@ -12,14 +12,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.jdbc.pool.ConnectionPool;
 import org.apache.tomcat.jdbc.pool.PoolConfiguration;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 
+@Slf4j
 public class MonitorConnectionPool extends ConnectionPool {
-
-    private static final MonitorUtil monitor = MonitorFactory.connect();
     private static final ScheduledExecutorService executorService = ExecutorServiceUtil
             .buildScheduledThreadPool(1, "ConnectionPoolStat-");
     private static final ConcurrentHashMap<String, PoolStat> POOL_STAT_REGISTRY = new ConcurrentHashMap<>(2);
@@ -33,22 +33,7 @@ public class MonitorConnectionPool extends ConnectionPool {
                 if (poolStat == null) {
                     return;
                 }
-                // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录连接池的状态值
-                poolStat.updateNow();
-
-                // 从上次获取并记录后没有发生变化的话,没必要输出监控日志
-                if (!poolStat.isChanged()) {
-                    return;
-                }
-
-                MonitorPoint point = MonitorPoint
-                        .monitorKey("isharpever.datasource.pool")
-                        .addTag("app", AppNameUtil.getAppName())
-                        .addTag("name", poolStat.getPoolName())
-                        .addTag("ip", NetUtil.getLocalHostAddress())
-                        .addField("active", poolStat.getAndClearActive())
-                        .addField("idle", poolStat.getAndClearIdle()).build();
-                monitor.writePoint(point);
+                poolStat.writePoint();
             });
         }, 1, 1, TimeUnit.SECONDS);
     }
@@ -100,6 +85,8 @@ public class MonitorConnectionPool extends ConnectionPool {
     }
 
     private static class PoolStat {
+        private static final MonitorUtil monitor = MonitorFactory.connect();
+
         private MonitorConnectionPool connectionPool;
         private String poolName;
         /** 活跃连接数 */
@@ -121,7 +108,7 @@ public class MonitorConnectionPool extends ConnectionPool {
 
         /**
          * 只在值变大的时候更新,因此收集当前值后需要清零(getAndClearXxx),否则值只会变大不会变小<br>
-         * 没有采取"凡是在值发生变化时都更新"这样策略的原因是:值的收集不是实时的,希望收集的值能体现一段时间的高峰
+         * 没有采取"凡是在值发生变化时都更新"这样策略的原因是:值是每隔一段时间收集一次的,希望收集的值能体现出这段时间内的高峰
          */
         private void updateNow() {
             updActiveIfLarger(connectionPool.getActive());
@@ -148,25 +135,42 @@ public class MonitorConnectionPool extends ConnectionPool {
             }
         }
 
-        private String getPoolName() {
-            return poolName;
-        }
-
         private int getAndClearActive() {
-            return previousActive = this.active.getAndSet(0);
+            return this.active.getAndSet(0);
         }
 
         private int getAndClearIdle() {
-            return previousIdle = this.idle.getAndSet(0);
+            return this.idle.getAndSet(0);
         }
 
         /**
-         * 具有实时监控意义的指标是否发生了变化
-         * @return
+         * 输出监控日志
          */
-        private boolean isChanged() {
-            return this.active.get() != previousActive
-                    || this.idle.get() != previousIdle;
+        private void writePoint() {
+            // 为保证监控结果的相对实时性,在输出监控日志之前再次获取并记录连接池的状态值
+            updateNow();
+
+            // 获取并清零当前状态值
+            int currentActive = getAndClearActive();
+            int currentIdle = getAndClearIdle();
+
+            // 从上次获取并记录后没有发生变化的话,没必要输出监控日志
+            if (currentActive == previousActive
+                    && currentIdle == previousIdle) {
+                return;
+            }
+
+            MonitorPoint point = MonitorPoint
+                    .monitorKey("isharpever.datasource.pool")
+                    .addTag("app", AppNameUtil.getAppName())
+                    .addTag("name", this.poolName)
+                    .addTag("ip", NetUtil.getLocalHostAddress())
+                    .addField("active", currentActive)
+                    .addField("idle", currentIdle).build();
+            monitor.writePoint(point);
+
+            this.previousActive = currentActive;
+            this.previousIdle = currentIdle;
         }
     }
 }

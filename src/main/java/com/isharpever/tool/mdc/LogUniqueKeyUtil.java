@@ -24,6 +24,9 @@ public class LogUniqueKeyUtil {
     }
 
     public static void generateKeyToLog(String logKey) {
+        if (StringUtils.isBlank(logKey)) {
+            logKey = generateKey();
+        }
         MDC.put(LOG_KEY, logKey);
     }
 
