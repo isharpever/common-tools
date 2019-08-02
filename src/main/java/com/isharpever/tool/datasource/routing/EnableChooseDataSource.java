@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Import;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-@Import(DataSourceAspect.class)
+@Import(ChooseDataSourceConfiguration.class)
 public @interface EnableChooseDataSource {
+    int order() default ChooseDataSourceConfiguration.DEFAULT_ORDER;
 }

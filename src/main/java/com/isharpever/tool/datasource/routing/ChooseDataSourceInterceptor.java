@@ -3,43 +3,29 @@ package com.isharpever.tool.datasource.routing;
 import com.isharpever.tool.datasource.routing.DataSource.Propagation;
 import java.lang.reflect.Method;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
 
 /**
  * 切换数据源切面
- *
- * @deprecated 被DataSourceAdvise替代
  */
-@Component
-@Aspect
-@Order(200)
 @Slf4j
-@Deprecated
-public class DataSourceAspect {
+public class ChooseDataSourceInterceptor implements MethodInterceptor {
 
-    @Pointcut("@annotation(com.isharpever.tool.datasource.routing.DataSource)")
-    public void pointcut() {}
-
-    @Around("pointcut()")
-    public Object arround(ProceedingJoinPoint joinPoint) throws Throwable {
-        Object lookupKey = retrieveLookupKey(joinPoint);
+    @Override
+    public Object invoke(MethodInvocation invocation) throws Throwable {
+        Object lookupKey = retrieveLookupKey(invocation);
         DataSourceLookupKeyHolder.put(lookupKey);
         try {
-            return joinPoint.proceed();
+            return invocation.proceed();
         }finally {
             DataSourceLookupKeyHolder.pop();
         }
     }
 
-    private Object retrieveLookupKey(ProceedingJoinPoint joinPoint) {
+    private Object retrieveLookupKey(MethodInvocation invocation) {
         try {
-            Method m = ((MethodSignature)joinPoint.getSignature()).getMethod();
+            Method m = invocation.getMethod();
             if (m != null && m.isAnnotationPresent(DataSource.class)) {
                 DataSource data = m.getAnnotation(DataSource.class);
                 if (data.propagation() == Propagation.INHERIT

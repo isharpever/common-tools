@@ -29,7 +29,7 @@ public abstract class AbstractFilteredMessageListener implements MessageListener
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         }
 
-        LogUniqueKeyUtil.generateKeyToLogIfAbsent();
+        LogUniqueKeyUtil.generateKeyToLog();
 
         MessageExt msg = msgs.get(0);
         String body = new String(msg.getBody());
