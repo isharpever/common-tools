@@ -1,8 +1,8 @@
 package com.isharpever.tool.dynamic;
 
-import com.dianwoda.ylzx.tool.dynamic.compile.CompileUtil;
-import com.dianwoda.ylzx.tool.dynamic.processor.ControllerProcessor;
-import com.dianwoda.ylzx.tool.dynamic.processor.DynamicBeanProcessor;
+import com.isharpever.tool.dynamic.compile.CompileUtil;
+import com.isharpever.tool.dynamic.processor.ControllerProcessor;
+import com.isharpever.tool.dynamic.processor.DynamicBeanProcessor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

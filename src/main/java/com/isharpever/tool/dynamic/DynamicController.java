@@ -1,6 +1,6 @@
 package com.isharpever.tool.dynamic;
 
-import com.dianwoda.ylzx.tool.dynamic.compile.CompileUtil;
+import com.isharpever.tool.dynamic.compile.CompileUtil;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
