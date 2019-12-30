@@ -84,6 +84,8 @@ public class CompileUtil {
             }
 
             options = new ArrayList<>();
+            options.add("-source");
+            options.add("1.8");
             options.add("-target");
             options.add("1.8");
 
