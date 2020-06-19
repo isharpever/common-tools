@@ -2,6 +2,7 @@ package com.isharpever.tool.datasource.routing;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
@@ -73,6 +74,21 @@ public class ChooseDataSource extends AbstractRoutingDataSource {
             chooseDataSource.setTargetDataSources(this.dataSourceBeanNames);
             chooseDataSource.setDefaultTargetDataSource(this.defaultDataSourceBeanName);
             return chooseDataSource;
+        }
+    }
+
+    /**
+     * 在指定库执行一个查询(增删改查)
+     * @param dataSourceLookupKey 选择指定库
+     * @param query 表示一个查询(增删改查)
+     * @return 本次查询的结果(可能是void)
+     */
+    public static <T> T execute(String dataSourceLookupKey, Supplier<T> query) {
+        DataSourceLookupKeyHolder.put(dataSourceLookupKey);
+        try {
+            return query.get();
+        } finally {
+            DataSourceLookupKeyHolder.pop();
         }
     }
 }
