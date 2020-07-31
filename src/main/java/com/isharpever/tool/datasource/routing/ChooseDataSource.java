@@ -15,6 +15,7 @@ import org.springframework.util.Assert;
  */
 public class ChooseDataSource extends AbstractRoutingDataSource {
     private final MapDataSourceLookup dataSourceLookup = new MapDataSourceLookup();
+    private Map<Object, Object> dataSourceBeanNames;
 
     private ChooseDataSource() {
         super.setDataSourceLookup(dataSourceLookup);
@@ -31,8 +32,37 @@ public class ChooseDataSource extends AbstractRoutingDataSource {
     }
 
     @Override
+    public void setTargetDataSources(Map<Object, Object> targetDataSources) {
+        this.dataSourceBeanNames = targetDataSources;
+        super.setTargetDataSources(targetDataSources);
+    }
+
+    @Override
     protected Object determineCurrentLookupKey() {
         return DataSourceLookupKeyHolder.get();
+    }
+
+    /**
+     * 重置DataSource参数
+     * @param lookupKey
+     * @param url
+     * @param userName
+     * @param password
+     * @return
+     */
+    public void update(String lookupKey, String url, String userName, String password) {
+        Object dataSourceBeanName = dataSourceBeanNames.get(lookupKey);
+        if (dataSourceBeanName == null) {
+            throw new IllegalArgumentException("未找到对应库 lookupKey=" + lookupKey);
+        }
+        DataSource dataSource = dataSourceLookup.getDataSource(dataSourceBeanName.toString());
+        if (!(dataSource instanceof org.apache.tomcat.jdbc.pool.DataSource)) {
+            throw new IllegalArgumentException("只支持org.apache.tomcat.jdbc.pool.DataSource lookupKey=" + lookupKey);
+        }
+        ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).setUrl(url);
+        ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).setUsername(userName);
+        ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).setPassword(password);
+        ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).close();
     }
 
     public static Builder newBuilder() {
