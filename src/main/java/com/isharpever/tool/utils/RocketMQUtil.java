@@ -1,6 +1,6 @@
 package com.isharpever.tool.utils;
 
-import com.dianwoba.core.exception.BusinessException;
+import com.isharpever.tool.dubbo.exception.BusinessException;
 import com.isharpever.tool.enums.CustomLogLevel;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;

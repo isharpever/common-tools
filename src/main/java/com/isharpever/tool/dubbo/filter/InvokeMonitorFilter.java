@@ -1,11 +1,8 @@
 package com.isharpever.tool.dubbo.filter;
 
 import com.alibaba.fastjson.JSON;
-import com.dianwoba.monitor.client.MonitorFactory;
-import com.dianwoba.monitor.client.MonitorPoint;
-import com.dianwoba.monitor.client.MonitorUtil;
 import com.isharpever.tool.utils.NetUtil;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.rpc.Invocation;
@@ -33,7 +30,7 @@ public class InvokeMonitorFilter extends ListenableFilter {
     static class InvokeMonitorListener implements Listener {
         private static final Logger LOGGER = LoggerFactory.getLogger(InvokeMonitorFilter.class);
 
-        private MonitorUtil monitor = MonitorFactory.connect();
+//        private MonitorUtil monitor = MonitorFactory.connect();
 
         @Override
         public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
@@ -83,16 +80,16 @@ public class InvokeMonitorFilter extends ListenableFilter {
                 slow = "true";
             }
 
-            MonitorPoint point = MonitorPoint
-                    .monitorKey("isharpever.dubbo.monitor")
-                    .addTag("app", this.getAppCode(invoker))
-                    .addTag("ip", ip)
-                    .addTag("interface", interfaceName)
-                    .addTag("method", methodName)
-                    .addTag("slow", slow)
-                    .addField("cost", cost)
-                    .addField("rlen", rsltLen).build();
-            monitor.writePoint(point);
+//            MonitorPoint point = MonitorPoint
+//                    .monitorKey("isharpever.dubbo.monitor")
+//                    .addTag("app", this.getAppCode(invoker))
+//                    .addTag("ip", ip)
+//                    .addTag("interface", interfaceName)
+//                    .addTag("method", methodName)
+//                    .addTag("slow", slow)
+//                    .addField("cost", cost)
+//                    .addField("rlen", rsltLen).build();
+//            monitor.writePoint(point);
         }
 
         /**

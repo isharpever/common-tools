@@ -3,7 +3,7 @@ package com.isharpever.tool.utils;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class NetUtil {

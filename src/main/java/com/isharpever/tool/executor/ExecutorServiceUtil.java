@@ -1,8 +1,5 @@
 package com.isharpever.tool.executor;
 
-import com.dianwoba.monitor.client.MonitorFactory;
-import com.dianwoba.monitor.client.MonitorPoint;
-import com.dianwoba.monitor.client.MonitorUtil;
 import com.isharpever.tool.mdc.LogUniqueKeyUtil;
 import com.isharpever.tool.utils.AppNameUtil;
 import com.isharpever.tool.utils.NetUtil;
@@ -245,7 +242,7 @@ public abstract class ExecutorServiceUtil {
     }
 
     private static class PoolStat {
-        private static final MonitorUtil monitor = MonitorFactory.connect();
+//        private static final MonitorUtil monitor = MonitorFactory.connect();
 
         private ThreadPoolExecutor executor;
         private String poolName;
@@ -455,21 +452,21 @@ public abstract class ExecutorServiceUtil {
                 return;
             }
 
-            MonitorPoint point = MonitorPoint
-                    .monitorKey(this.measurement)
-                    .addTag("app", AppNameUtil.getAppName())
-                    .addTag("ip", NetUtil.getLocalHostAddress())
-                    .addTag("name", this.poolName)
-                    .addField("corePoolSize", corePoolSize)
-                    .addField("maximumPoolSize", maximumPoolSize)
-                    .addField("poolSize", poolSize)
-                    .addField("largestPoolSize", largestPoolSize)
-                    .addField("activeCount", activeCount)
-                    .addField("completedTaskCount", completedTaskCount)
-                    .addField("taskCount", taskCount)
-                    .addField("queueSize", queueSize)
-                    .build();
-            monitor.writePoint(point);
+//            MonitorPoint point = MonitorPoint
+//                    .monitorKey(this.measurement)
+//                    .addTag("app", AppNameUtil.getAppName())
+//                    .addTag("ip", NetUtil.getLocalHostAddress())
+//                    .addTag("name", this.poolName)
+//                    .addField("corePoolSize", corePoolSize)
+//                    .addField("maximumPoolSize", maximumPoolSize)
+//                    .addField("poolSize", poolSize)
+//                    .addField("largestPoolSize", largestPoolSize)
+//                    .addField("activeCount", activeCount)
+//                    .addField("completedTaskCount", completedTaskCount)
+//                    .addField("taskCount", taskCount)
+//                    .addField("queueSize", queueSize)
+//                    .build();
+//            monitor.writePoint(point);
 
             this.previousCorePoolSize = corePoolSize;
             this.previousMaximumPoolSize = maximumPoolSize;

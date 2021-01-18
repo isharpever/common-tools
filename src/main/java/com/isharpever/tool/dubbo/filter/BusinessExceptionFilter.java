@@ -1,6 +1,6 @@
 package com.isharpever.tool.dubbo.filter;
 
-import com.dianwoba.core.exception.BusinessException;
+import com.isharpever.tool.dubbo.exception.BusinessException;
 import java.lang.reflect.Method;
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;

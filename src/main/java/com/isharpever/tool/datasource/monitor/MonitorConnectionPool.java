@@ -1,8 +1,5 @@
 package com.isharpever.tool.datasource.monitor;
 
-import com.dianwoba.monitor.client.MonitorFactory;
-import com.dianwoba.monitor.client.MonitorPoint;
-import com.dianwoba.monitor.client.MonitorUtil;
 import com.isharpever.tool.executor.ExecutorServiceUtil;
 import com.isharpever.tool.utils.AppNameUtil;
 import com.isharpever.tool.utils.NetUtil;
@@ -85,7 +82,7 @@ public class MonitorConnectionPool extends ConnectionPool {
     }
 
     private static class PoolStat {
-        private static final MonitorUtil monitor = MonitorFactory.connect();
+//        private static final MonitorUtil monitor = MonitorFactory.connect();
 
         private MonitorConnectionPool connectionPool;
         private String poolName;
@@ -160,14 +157,14 @@ public class MonitorConnectionPool extends ConnectionPool {
                 return;
             }
 
-            MonitorPoint point = MonitorPoint
-                    .monitorKey("isharpever.datasource.pool")
-                    .addTag("app", AppNameUtil.getAppName())
-                    .addTag("name", this.poolName)
-                    .addTag("ip", NetUtil.getLocalHostAddress())
-                    .addField("active", currentActive)
-                    .addField("idle", currentIdle).build();
-            monitor.writePoint(point);
+//            MonitorPoint point = MonitorPoint
+//                    .monitorKey("isharpever.datasource.pool")
+//                    .addTag("app", AppNameUtil.getAppName())
+//                    .addTag("name", this.poolName)
+//                    .addTag("ip", NetUtil.getLocalHostAddress())
+//                    .addField("active", currentActive)
+//                    .addField("idle", currentIdle).build();
+//            monitor.writePoint(point);
 
             this.previousActive = currentActive;
             this.previousIdle = currentIdle;

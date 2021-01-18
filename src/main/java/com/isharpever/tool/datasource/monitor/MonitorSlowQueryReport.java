@@ -1,8 +1,5 @@
 package com.isharpever.tool.datasource.monitor;
 
-import com.dianwoba.monitor.client.MonitorFactory;
-import com.dianwoba.monitor.client.MonitorPoint;
-import com.dianwoba.monitor.client.MonitorUtil;
 import com.isharpever.tool.enums.CustomLogLevel;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -39,7 +36,7 @@ public class MonitorSlowQueryReport extends SlowQueryReport {
     private String name = "";
     protected static final Set<String> SET_METHODS = new HashSet<String>();
     protected static final String SET_NULL  = "setNull";
-    private MonitorUtil monitor = MonitorFactory.connect();
+//    private MonitorUtil monitor = MonitorFactory.connect();
 
     static {
         SET_METHODS.add("setString");
@@ -106,14 +103,14 @@ public class MonitorSlowQueryReport extends SlowQueryReport {
             logger.log(CustomLogLevel.DING.toLevel(), "【{}慢查】md5={}; 耗时={}; SQL={}; 参数={};",
                     this.getName(), md5, delta, beautifulSql, this.getSqlParameterString());
 
-            MonitorPoint point = MonitorPoint
-                    .monitorKey("isharpever.datasource.slowQuery")
-                    .addTag("app", this.getAppCode())
-                    .addTag("ip", this.getLocalHostAddress())
-                    .addTag("name", this.getName())
-                    .addField("cost", delta)
-                    .addTag("sql", md5).build();
-            monitor.writePoint(point);
+//            MonitorPoint point = MonitorPoint
+//                    .monitorKey("isharpever.datasource.slowQuery")
+//                    .addTag("app", this.getAppCode())
+//                    .addTag("ip", this.getLocalHostAddress())
+//                    .addTag("name", this.getName())
+//                    .addField("cost", delta)
+//                    .addTag("sql", md5).build();
+//            monitor.writePoint(point);
         }
 
         return sql;

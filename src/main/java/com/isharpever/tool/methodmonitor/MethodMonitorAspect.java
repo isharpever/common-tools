@@ -1,8 +1,5 @@
 package com.isharpever.tool.methodmonitor;
 
-import com.dianwoba.monitor.client.MonitorPoint;
-import com.dianwoba.monitor.client.MonitorUtil;
-import com.dianwoba.monitor.client.MonitorUtilImpl;
 import com.isharpever.tool.utils.AppNameUtil;
 import com.isharpever.tool.utils.NetUtil;
 import java.lang.reflect.Method;
@@ -19,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class MethodMonitorAspect {
 
-    private MonitorUtil monitor = new MonitorUtilImpl();
+//    private MonitorUtil monitor = new MonitorUtilImpl();
 
     @Pointcut("@annotation(MethodMonitor)")
     public void pointcut() {}
@@ -36,15 +33,15 @@ public class MethodMonitorAspect {
                 String[] target = this.getTargetMethodSignure(joinPoint);
 
                 // 写入监控
-                MonitorPoint point = MonitorPoint
-                        .monitorKey("isharpever.method.monitor")
-                        .addTag("app", AppNameUtil.getAppName())
-                        .addTag("ip", NetUtil.getLocalHostAddress())
-                        .addTag("class", target[0])
-                        .addTag("method", target[1])
-                        .addField("rt", System.currentTimeMillis() - startTime)
-                        .build();
-                monitor.writePoint(point);
+//                MonitorPoint point = MonitorPoint
+//                        .monitorKey("isharpever.method.monitor")
+//                        .addTag("app", AppNameUtil.getAppName())
+//                        .addTag("ip", NetUtil.getLocalHostAddress())
+//                        .addTag("class", target[0])
+//                        .addTag("method", target[1])
+//                        .addField("rt", System.currentTimeMillis() - startTime)
+//                        .build();
+//                monitor.writePoint(point);
             } catch (Exception e) {
                 log.warn("--- 监控目标方式发生异常", e);
             }
