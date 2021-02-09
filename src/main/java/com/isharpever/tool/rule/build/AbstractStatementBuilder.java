@@ -1,7 +1,7 @@
 package com.isharpever.tool.rule.build;
 
 import com.isharpever.tool.rule.OperatorEnum;
-import com.isharpever.tool.rule.ValueTypeEnum;
+import com.isharpever.tool.rule.DataTypeEnum;
 import com.isharpever.tool.rule.build.check.ValueChecker;
 import org.apache.commons.lang3.StringUtils;
 
@@ -14,7 +14,7 @@ public abstract class AbstractStatementBuilder implements StatementBuilder {
 
     @Override
     public String identity() {
-        return String.format(IDENTITY_FORMAT, supportOperator().getOperator(), supportValueType().getValueType());
+        return String.format(IDENTITY_FORMAT, supportOperator().getOperator(), supportDataType().getDataType());
     }
 
     @Override
@@ -45,7 +45,7 @@ public abstract class AbstractStatementBuilder implements StatementBuilder {
     }
 
     protected abstract OperatorEnum supportOperator();
-    protected abstract ValueTypeEnum supportValueType();
+    protected abstract DataTypeEnum supportDataType();
     protected abstract ValueChecker valueChecker();
     protected abstract StatementBuildResult doBuild(String field, List<String> value);
 }

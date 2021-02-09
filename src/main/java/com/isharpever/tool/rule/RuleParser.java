@@ -8,9 +8,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Slf4j
 public class RuleParser {
@@ -44,7 +41,7 @@ public class RuleParser {
         // 规则
         if (CollectionUtils.isNotEmpty(conditionGroup.getConditions())) {
             for (Condition condition : conditionGroup.getConditions()) {
-                StatementBuildResult conditionResult = StatementBuilderFactory.buildStatement(condition.getField(), condition.getOperator(), condition.getValue(), condition.getValueType());
+                StatementBuildResult conditionResult = StatementBuilderFactory.buildStatement(condition);
                 result.mergeFrom(conditionResult);
                 joint(result.getCondition(), conditionGroup.getCojunction());
             }

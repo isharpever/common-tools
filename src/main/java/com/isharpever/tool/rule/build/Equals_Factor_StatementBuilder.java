@@ -1,9 +1,8 @@
 package com.isharpever.tool.rule.build;
 
-import com.google.common.collect.Sets;
 import com.isharpever.tool.rule.OperatorEnum;
-import com.isharpever.tool.rule.ValueTypeEnum;
-import com.isharpever.tool.rule.build.check.NotEmptyValueChecker;
+import com.isharpever.tool.rule.DataTypeEnum;
+import com.isharpever.tool.rule.build.check.TextValueChecker;
 import com.isharpever.tool.rule.build.check.ValueChecker;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,13 +16,13 @@ public class Equals_Factor_StatementBuilder extends AbstractStatementBuilder {
     }
 
     @Override
-    protected ValueTypeEnum supportValueType() {
-        return ValueTypeEnum.FACTOR;
+    protected DataTypeEnum supportDataType() {
+        return DataTypeEnum.FACTOR;
     }
 
     @Override
     protected ValueChecker valueChecker() {
-        return NotEmptyValueChecker.INSTANCE;
+        return TextValueChecker.INSTANCE;
     }
 
     @Override

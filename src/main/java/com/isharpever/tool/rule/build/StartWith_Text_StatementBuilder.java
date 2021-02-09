@@ -2,39 +2,35 @@ package com.isharpever.tool.rule.build;
 
 import com.isharpever.tool.rule.OperatorEnum;
 import com.isharpever.tool.rule.DataTypeEnum;
-import com.isharpever.tool.rule.build.check.NumberValueChecker;
+import com.isharpever.tool.rule.build.check.TextValueChecker;
 import com.isharpever.tool.rule.build.check.ValueChecker;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 @Slf4j
-public class Contains_Number_StatementBuilder extends AbstractStatementBuilder {
+public class StartWith_Text_StatementBuilder extends AbstractStatementBuilder {
     @Override
     protected OperatorEnum supportOperator() {
-        return OperatorEnum.CONTAINS;
+        return OperatorEnum.START_WITH;
     }
 
     @Override
     protected DataTypeEnum supportDataType() {
-        return DataTypeEnum.NUMBER;
+        return DataTypeEnum.TEXT;
     }
 
     @Override
     protected ValueChecker valueChecker() {
-        return NumberValueChecker.INSTANCE;
+        return TextValueChecker.INSTANCE;
     }
 
     @Override
     public StatementBuildResult doBuild(String field, List<String> value) {
         StatementBuildResult result = new StatementBuildResult();
         StringBuilder sb = new StringBuilder();
-        for (String one : value) {
-            sb.append("ToolFunc.containsNumber(").append(buildFactor(field)).append(",\"").append(one).append("\") && ");
-        }
-        sb.delete(sb.lastIndexOf(" && "), sb.length());
+        sb.append(buildFactor(field)).append(".startsWith(\"").append(value.get(0)).append("\")");
         result.addCondition(sb);
-        result.addImports("import com.isharpever.tool.rule.ToolFunc;");
         return result;
     }
 }

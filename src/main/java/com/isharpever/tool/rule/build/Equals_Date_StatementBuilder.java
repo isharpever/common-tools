@@ -1,7 +1,7 @@
 package com.isharpever.tool.rule.build;
 
 import com.isharpever.tool.rule.OperatorEnum;
-import com.isharpever.tool.rule.ValueTypeEnum;
+import com.isharpever.tool.rule.DataTypeEnum;
 import com.isharpever.tool.rule.build.check.DateValueChecker;
 import com.isharpever.tool.rule.build.check.ValueChecker;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +16,8 @@ public class Equals_Date_StatementBuilder extends AbstractStatementBuilder {
     }
 
     @Override
-    protected ValueTypeEnum supportValueType() {
-        return ValueTypeEnum.DATE;
+    protected DataTypeEnum supportDataType() {
+        return DataTypeEnum.DATE;
     }
 
     @Override
@@ -28,16 +28,8 @@ public class Equals_Date_StatementBuilder extends AbstractStatementBuilder {
     @Override
     public StatementBuildResult doBuild(String field, List<String> value) {
         StatementBuildResult result = new StatementBuildResult();
-        result.addCondition("formatYmd(" + buildFactor(field) + ").equals(\"" + value.get(0) + "\")");
-        result.addFunctions(formatYmdFunc());
-        result.addImports("import java.text.SimpleDateFormat;");
+        result.addCondition("ToolFunc.compareYmd(" + buildFactor(field) + ",\"" + value.get(0) + "\")==0");
+        result.addImports("import com.isharpever.tool.rule.ToolFunc;");
         return result;
-    }
-
-    private String formatYmdFunc() {
-        return "private String formatYmd(Date date) {\n" +
-                "    SimpleDateFormat format = new SimpleDateFormat(\"yyyy-MM-dd\");\n" +
-                "    return format.format(date);\n" +
-                "}";
     }
 }

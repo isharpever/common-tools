@@ -2,14 +2,18 @@ package com.isharpever.tool;
 
 import com.isharpever.tool.rule.Rule;
 import com.isharpever.tool.rule.RuleParser;
+import com.isharpever.tool.rule.ToolFunc;
 import com.isharpever.tool.rule.build.*;
 import com.isharpever.tool.utils.GroovyCachedEngine;
 import org.junit.Test;
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class RuleTest {
     @Test
@@ -30,9 +34,13 @@ public class RuleTest {
         efsb.register();
         Contains_Number_StatementBuilder cnsb = new Contains_Number_StatementBuilder();
         cnsb.register();
+        Equals_Null_StatementBuilder enusb = new Equals_Null_StatementBuilder();
+        enusb.register();
+        StartWith_Text_StatementBuilder stsb = new StartWith_Text_StatementBuilder();
+        stsb.register();
 
         // 解析规则
-        Rule rule = RuleParser.parse("{'not':false,'cojunction':'&&','conditions':[{'field':'age','operator':'==','value':['12'],'valueType':'number'},{'field':'fat','operator':'==','value':['false'],'valueType':'boolean'},{'field':'live','operator':'==','value':['HZ'],'valueType':'text'},{'field':'sd','operator':'==','value':['2011-02-01'],'valueType':'date'},{'field':'sdt','operator':'==','value':['2011-02-01 15:09:00'],'valueType':'datetime'},{'field':'st','operator':'==','value':['15:22:00'],'valueType':'time'}],'conditionGroups':[{'not':false,'cojunction':'&&','conditions':[{'field':'sala','operator':'==','value':['xf'],'valueType':'factor'},{'field':'nl','operator':'包含','value':[10,20],'valueType':'number'}]}]}");
+        Rule rule = RuleParser.parse("{\"not\":false,\"cojunction\":\"&&\",\"conditions\":[{\"field\":\"age\",\"fieldType\":\"number\",\"operator\":\"==\",\"value\":[\"12\"],\"valueType\":\"const\"},{\"field\":\"fat\",\"fieldType\":\"boolean\",\"operator\":\"==\",\"value\":[\"false\"],\"valueType\":\"const\"},{\"field\":\"live\",\"fieldType\":\"text\",\"operator\":\"==\",\"value\":[\"HZ\"],\"valueType\":\"const\"},{\"field\":\"sd\",\"fieldType\":\"date\",\"operator\":\"==\",\"value\":[\"2011-02-01\"],\"valueType\":\"const\"},{\"field\":\"sdt\",\"fieldType\":\"datetime\",\"operator\":\"==\",\"value\":[\"2011-02-01 15:09:00\"],\"valueType\":\"const\"},{\"field\":\"st\",\"fieldType\":\"time\",\"operator\":\"==\",\"value\":[\"15:22:00\"],\"valueType\":\"const\"}],\"conditionGroups\":[{\"not\":false,\"cojunction\":\"&&\",\"conditions\":[{\"field\":\"sala\",\"fieldType\":\"number\",\"operator\":\"==\",\"value\":[\"xf\"],\"valueType\":\"factor\"},{\"field\":\"nl\",\"fieldType\":\"number\",\"operator\":\"包含\",\"value\":[10,20],\"valueType\":\"const\"}]},{\"not\":false,\"cojunction\":\"&&\",\"conditions\":[{\"field\":\"pro\",\"fieldType\":\"text\",\"operator\":\"以此开头\",\"value\":[\"医用\"],\"valueType\":\"const\"},{\"field\":\"enu\",\"fieldType\":\"number\",\"operator\":\"==\",\"value\":[],\"valueType\":\"null\"}]}]}\n");
         System.out.println(rule.getSourceCode());
 
         // 执行因子
@@ -70,6 +78,8 @@ public class RuleTest {
         factorScripts.put("sala", "return 75;");
         factorScripts.put("xf", "return 75;");
         factorScripts.put("nl", "return Arrays.asList(10, 20);");
+        factorScripts.put("pro", "return \"医用防护镜\";");
+        factorScripts.put("enu", "return null;");
 
         // 返回指定因子的脚本
         Map<String, String> result = new HashMap<>();

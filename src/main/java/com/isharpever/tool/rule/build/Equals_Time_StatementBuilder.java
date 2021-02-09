@@ -1,7 +1,7 @@
 package com.isharpever.tool.rule.build;
 
 import com.isharpever.tool.rule.OperatorEnum;
-import com.isharpever.tool.rule.ValueTypeEnum;
+import com.isharpever.tool.rule.DataTypeEnum;
 import com.isharpever.tool.rule.build.check.TimeValueChecker;
 import com.isharpever.tool.rule.build.check.ValueChecker;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +16,8 @@ public class Equals_Time_StatementBuilder extends AbstractStatementBuilder {
     }
 
     @Override
-    protected ValueTypeEnum supportValueType() {
-        return ValueTypeEnum.TIME;
+    protected DataTypeEnum supportDataType() {
+        return DataTypeEnum.TIME;
     }
 
     @Override
@@ -28,16 +28,8 @@ public class Equals_Time_StatementBuilder extends AbstractStatementBuilder {
     @Override
     public StatementBuildResult doBuild(String field, List<String> value) {
         StatementBuildResult result = new StatementBuildResult();
-        result.addCondition("formatHms(" + buildFactor(field) + ").equals(\"" + value.get(0) + "\")");
-        result.addFunctions(formatHmsFunc());
-        result.addImports("import java.text.SimpleDateFormat;");
+        result.addCondition("ToolFunc.compareHms(" + buildFactor(field) + ",\"" + value.get(0) + "\")==0");
+        result.addImports("import com.isharpever.tool.rule.ToolFunc;");
         return result;
-    }
-
-    private String formatHmsFunc() {
-        return "private String formatHms(Date date) {\n" +
-                "    SimpleDateFormat format = new SimpleDateFormat(\"HH:mm:ss\");\n" +
-                "    return format.format(date);\n" +
-                "}";
     }
 }
