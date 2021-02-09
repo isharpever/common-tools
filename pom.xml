@@ -129,6 +129,13 @@
             <artifactId>disconf-client</artifactId>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all -->
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>3.0.7</version>
+        </dependency>
+
     </dependencies>
 
     <build>

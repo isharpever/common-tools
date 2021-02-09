@@ -309,7 +309,6 @@ public class CustomAsyncHttpClient {
                         .build();
             } else {
                 asyncHttpClient = HttpAsyncClients.custom().setConnectionManager(conMgr)
-                        .setDefaultCredentialsProvider(credentialsProvider)
                         .setDefaultAuthSchemeRegistry(authSchemeRegistry)
                         .setDefaultCookieStore(new BasicCookieStore())
                         .setDefaultRequestConfig(requestConfig)
